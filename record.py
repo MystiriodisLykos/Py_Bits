@@ -28,6 +28,9 @@ class RecordMeta(typing.NamedTupleMeta):
 
 class Record(typing.NamedTuple, metaclass = RecordMeta):
     _root = True
+    def __new__(cls, *args, bases = (), **kwargs):
+        nm_tpl = super().__new__(cls, *args, **kwargs)
+        return _make_record(nm_tpl, bases)
 
     def view(self, lens):
         return lens(lambda v: v, lambda f, v: v, self)
@@ -40,22 +43,29 @@ class Record(typing.NamedTuple, metaclass = RecordMeta):
 
 
 def tests():
-    class T(Record):
+    def lens_tests(record):
+        v1, v2, v3, v4 = 101010, 202020, 303030, 404040
+        t1 = record(v1, v2, v3)
+        assert t1.x is v1,  'Regular named tuple access returns correct value'
+        assert t1[0] is v1,  'Regular named tuple sub index returns correct value'
+
+        assert t1.view(record.y_lens) is v2,  'View with built lens returns correct value'
+
+        t2 = t1.set(record.y_lens, v4)
+        assert t2.y is v4,  'Set produces correct value'
+        assert t2.x is v1,  'Set leaves references to non-set values'
+
+        t2 = t1.over(record.y_lens, lambda v: v*2)
+        assert t2.y == t1.y*2,  'Over sets correct value'
+        assert t2.x is v1,  'Over leaves references to non-set values'
+
+    class TestClass(Record):
         x: int
         y: int
         z: int
 
-    v1, v2, v3, v4 = 101010, 202020, 303030, 404040
-    t1 = T(v1, v2, v3)
-    assert t1.x is v1,  'Regular named tuple access returns correct value'
-    assert t1[0] is v1,  'Regular named tuple sub index returns correct value'
+    lens_tests(TestClass)
 
-    assert t1.view(T.y_lens) is v2,  'View with built lens returns correct value'
+    TestFunc = Record('TestFunc', (('x', int), ('y', int), ('z', int)))
 
-    t2 = t1.set(T.y_lens, v4)
-    assert t2.y is v4,  'Set produces correct value'
-    assert t2.x is v1,  'Set leaves references to non-set values'
-
-    t2 = t1.over(T.y_lens, lambda v: v*2)
-    assert t2.y == t1.y*2,  'Over sets correct value'
-    assert t2.x is v1,  'Over leaves references to non-set values'
+    lens_tests(TestFunc)
