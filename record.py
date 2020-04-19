@@ -33,8 +33,10 @@ class Record(typing.NamedTuple, metaclass = RecordMeta):
         return lens(lambda v: v, lambda f, v: v, self)
 
     def over(self, lens, f):
-        f_ = f if callable(f) else lambda v: f
-        return lens(lambda v: f_(v), lambda f, v: f(v), self)
+        return lens(f, lambda f, v: f(v), self)
+
+    def set(self, lens, v):
+        return self.over(lens, lambda _: v)
 
 
 def tests():
@@ -50,10 +52,10 @@ def tests():
 
     assert t1.view(T.y_lens) is v2,  'View with built lens returns correct value'
 
-    t2 = t1.over(T.y_lens, v4)
-    assert t2.y is v4,  'Over with non-function sets correct value'
-    assert t2.x is v1,  'Over leaves references to non-set values'
+    t2 = t1.set(T.y_lens, v4)
+    assert t2.y is v4,  'Set produces correct value'
+    assert t2.x is v1,  'Set leaves references to non-set values'
 
     t2 = t1.over(T.y_lens, lambda v: v*2)
-    assert t2.y == t1.y*2,  'Over with funciton sets correct value'
+    assert t2.y == t1.y*2,  'Over sets correct value'
     assert t2.x is v1,  'Over leaves references to non-set values'
