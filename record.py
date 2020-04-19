@@ -28,10 +28,32 @@ class RecordMeta(typing.NamedTupleMeta):
 
 class Record(typing.NamedTuple, metaclass = RecordMeta):
     _root = True
-    
+
     def view(self, lens):
         return lens(lambda v: v, lambda f, v: v, self)
 
     def over(self, lens, f):
         f_ = f if callable(f) else lambda v: f
         return lens(lambda v: f_(v), lambda f, v: f(v), self)
+
+
+def tests():
+    class T(Record):
+        x: int
+        y: int
+        z: int
+
+    v1, v2, v3, v4 = 101010, 202020, 303030, 404040
+    t1 = T(v1, v2, v3)
+    assert t1.x is v1,  'Regular named tuple access returns correct value'
+    assert t1[0] is v1,  'Regular named tuple sub index returns correct value'
+
+    assert t1.view(T.y_lens) is v2,  'View with built lens returns correct value'
+
+    t2 = t1.over(T.y_lens, v4)
+    assert t2.y is v4,  'Over with non-function sets correct value'
+    assert t2.x is v1,  'Over leaves references to non-set values'
+
+    t2 = t1.over(T.y_lens, lambda v: v*2)
+    assert t2.y == t1.y*2,  'Over with funciton sets correct value'
+    assert t2.x is v1,  'Over leaves references to non-set values'
