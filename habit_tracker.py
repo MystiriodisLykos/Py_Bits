@@ -30,6 +30,7 @@ tracker theme Programming: !FP !python
     Creates a theme called Programming for tracking tags !FP, !lenses, !Programming 
 '''
 
+import datetime
 import os
 import json
 import re
@@ -40,17 +41,28 @@ class Utils:
         if os.path.exists(file_name):
             with open(file_name) as file:
                 return dict(json.load(file))
-    
+
     @staticmethod
-    def write_file(file_name, content):
+    def write_entry_to_file(file_name, entry):
         with open(file_name, 'w') as file:
-            file.write(content)
-    
+            file.write(json.dumps(entry.__dict__, default=str))
+
     @staticmethod
     def parse_tags(text):
         tags = re.findall(r'!\w+', text)
         new_text = re.sub(r'!!\w+', '', text)
         return new_text, tags
+
+class Entry:
+    def __init__(self, text, start_time, stop_time = None, tags = ()):
+        self._text = text
+        self._start_time = start_time
+        self._stop_time = stop_time
+        if tags == ():
+            new_text, tags = Utils.parse_tags(text)
+            self._tags = tags
+            self._text = new_text.strip()
+
 
 class Tracker:
     def __init__(self, dir_):
@@ -58,17 +70,18 @@ class Tracker:
         self._entries_file = os.path.join(dir_, 'entries')
         self._current_file = os.path.join(dir_, 'current')
         self._tags_file = os.path.join(dir_, 'tags')
-    
+
     @property
     def current(self):
         current = Utils.load_file(self._current_file)
         return current
-    
-    def _new(self, entry):
-        Utils.write_file(self._current_file, entry)
-    
-    def start(self, entry):
+
+    def _new(self, text):
+        entry = Entry(text, datetime.datetime.now())
+        Utils.write_entry_to_file(self._current_file, entry)
+
+    def start(self, text):
         if self.current != {}:
             # TODO: stop current
             pass
-        self._new(entry)
+        self._new(text)
