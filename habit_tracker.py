@@ -37,15 +37,15 @@ import re
 
 class Utils:
     @staticmethod
-    def load_file(file_name):
+    def load_file_to_entry(file_name):
         if os.path.exists(file_name):
             with open(file_name) as file:
-                return dict(json.load(file))
+                return Entry(**dict(json.load(file)))
 
     @staticmethod
     def write_entry_to_file(file_name, entry):
         with open(file_name, 'w') as file:
-            file.write(json.dumps(entry.__dict__, default=str))
+            file.write(json.dumps(dict(entry), default=str))
 
     @staticmethod
     def parse_tags(text):
@@ -60,8 +60,12 @@ class Entry:
         self._stop_time = stop_time
         if tags == ():
             new_text, tags = Utils.parse_tags(text)
-            self._tags = tags
             self._text = new_text.strip()
+        self._tags = tags
+
+    def __iter__(self):
+        for k, v in self.__dict__.items():
+            yield (k.strip('_'), v)
 
 
 class Tracker:
@@ -73,7 +77,7 @@ class Tracker:
 
     @property
     def current(self):
-        current = Utils.load_file(self._current_file)
+        current = Utils.load_file_to_entry(self._current_file)
         return current
 
     def _new(self, text):
