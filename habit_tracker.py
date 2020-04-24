@@ -43,9 +43,9 @@ class Utils:
                 return Entry(**dict(json.load(file)))
 
     @staticmethod
-    def write_entry_to_file(file_name, entry):
-        with open(file_name, 'w') as file:
-            file.write(json.dumps(dict(entry), default=str))
+    def write_entry_to_file(file_name, entry, mode = 'w'):
+        with open(file_name, mode) as file:
+            file.write(json.dumps(dict(entry), default=str)+'\n')
 
     @staticmethod
     def parse_tags(text):
@@ -84,8 +84,11 @@ class Tracker:
         entry = Entry(text, datetime.datetime.now())
         Utils.write_entry_to_file(self._current_file, entry)
 
+    def stop(self, entry):
+        entry._stop_time = datetime.datetime.now()
+        Utils.write_entry_to_file(self._entries_file, entry, 'a')
+
     def start(self, text):
         if self.current != {}:
-            # TODO: stop current
-            pass
+            self.stop(self.current)
         self._new(text)
