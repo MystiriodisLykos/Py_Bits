@@ -48,8 +48,20 @@ class Utils:
             file.write(json.dumps(dict(entry), default=str)+'\n')
 
     @staticmethod
+    def load_tags(tags_file):
+        if os.path.exists(tags_file):
+            with open(tags_file) as file:
+                return (json.load(file))
+        return ()
+
+    @staticmethod
+    def write_tags(tags_file, tags):
+        with open(tags_file, 'w') as file:
+            file.write(json.dumps(list(tags), default=str)+'\n')
+
+    @staticmethod
     def parse_tags(text):
-        tags = re.findall(r'!\w+', text)
+        tags = re.findall(r'!(\w+)', text)
         new_text = re.sub(r'!!\w+', '', text)
         return new_text, tags
 
@@ -82,6 +94,9 @@ class Tracker:
 
     def _new(self, text):
         entry = Entry(text, datetime.datetime.now())
+        tags = set(Utils.load_tags(self._tags_file))
+        tags = tags.union(entry._tags)
+        Utils.write_tags(self._tags_file, tags)
         Utils.write_entry_to_file(self._current_file, entry)
 
     def stop(self, entry):
