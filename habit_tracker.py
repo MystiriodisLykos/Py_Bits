@@ -28,6 +28,19 @@ tracker theme FP: !lenses
     Creates a tag !FP that can be added to entries
 tracker theme Programming: !FP !python
     Creates a theme called Programming for tracking tags !FP, !lenses, !Programming 
+
+tracker habbit add Daily Programming "Spend 2 hours outside of work programming": !Programming --time 3hr
+    Creates a habbit called "Daily Programming" with the description "Spend 3
+    hours outside of work programming" with a daily goal of 3 hours of entries with
+    the tag Programming or any sub tag.
+tracker habbit all
+    Outputs a list of all habbits, numbers of successful days, total time
+    Example output:
+    Daily Programming: 5 days, 17hr
+tracker habbit today
+    Outputs habbits yet to complete today
+    Example output:
+    Daily Programming: 1hr/3hr
 '''
 
 import datetime
