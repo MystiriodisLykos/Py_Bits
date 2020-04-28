@@ -59,6 +59,12 @@ def tests():
         assert t2.y == t1.y*2,  'Over sets correct value'
         assert t2.x is v1,  'Over leaves references to non-set values'
 
+    def mixin_tests(record):
+          assert isinstance(record(1), Mixin),  'Supports Mixin classing'
+          assert hasattr(record(1), 'mixin_method'),  'Mixin methods are carried'
+          assert hasattr(record(1), 'class_method'),  'Mixin class methods are carried'
+          assert hasattr(record(1), 'static_method'),  'Mixin static methods are carried'
+
     class TestClass(Record):
         x: int
         y: int
@@ -69,3 +75,20 @@ def tests():
     TestFunc = Record('TestFunc', (('x', int), ('y', int), ('z', int)))
 
     lens_tests(TestFunc)
+
+    class Mixin():
+        def mixin_method(self, v):
+            pass
+        @classmethod
+        def class_method(cls, v):
+            pass
+        @staticmethod
+        def static_method(v):
+            pass
+
+    class Mixin_Class_Test(Mixin, Record):
+        v1: int
+    Mixin_Func_Test = Record('Mixin_Func_Test', [('v1', int)], bases = (Mixin, ))
+
+    mixin_tests(Mixin_Class_Test)
+    mixin_tests(Mixin_Func_Test)
