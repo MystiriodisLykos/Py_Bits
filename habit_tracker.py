@@ -74,6 +74,10 @@ class Utils:
             file.write(json.dumps(list(tags), default=str)+'\n')
 
     @staticmethod
+    def remove_file(file_name):
+        os.remove(file_name)
+
+    @staticmethod
     def parse_tags(text):
         tags = re.findall(r'!(\w+)', text)
         new_text = re.sub(r'!!\w+', '', text)
@@ -115,7 +119,7 @@ class Tracker:
     def stop(self, entry = None):
         if not entry:
             entry = self.current
-            Utils.write_entry_to_file(self._current_file, {})
+            Utils.remove_file(self._current_file)
         entry._stop_time = datetime.datetime.now()
         Utils.write_entry_to_file(self._entries_file, entry, 'a')
 
