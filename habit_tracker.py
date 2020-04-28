@@ -29,14 +29,14 @@ tracker theme FP: !lenses
 tracker theme Programming: !FP !python
     Creates a theme called Programming for tracking tags !FP, !lenses, !Programming 
 
-tracker habbit add Daily Programming "Spend 2 hours outside of work programming": !Programming --time 3hr
+tracker habbit add Daily Programming "Spend 3 hours outside of work programming": !Programming --time 3hr
     Creates a habbit called "Daily Programming" with the description "Spend 3
     hours outside of work programming" with a daily goal of 3 hours of entries with
     the tag Programming or any sub tag.
 tracker habbit all
-    Outputs a list of all habbits, numbers of successful days, total time
+    Outputs a list of all habbits, numbers of successful days, total time, streak
     Example output:
-    Daily Programming: 5 days, 17hr
+    Daily Programming: 5 days, 17hr, 5 days
 tracker habbit today
     Outputs habbits yet to complete today
     Example output:
@@ -44,9 +44,10 @@ tracker habbit today
 '''
 
 import datetime
-import os
 import json
+import os
 import re
+import uuid
 
 class Utils:
     @staticmethod
@@ -79,14 +80,13 @@ class Utils:
         return new_text, tags
 
 class Entry:
-    def __init__(self, text, start_time, stop_time = None, tags = ()):
-        self._text = text
+    def __init__(self, text, start_time, stop_time = None, id = None, tags = ()):
         self._start_time = start_time
         self._stop_time = stop_time
-        if tags == ():
-            new_text, tags = Utils.parse_tags(text)
-            self._text = new_text.strip()
-        self._tags = tags
+        self._id = id if id else uuid.uuid1().hex
+        text, parse_tags = Utils.parse_tags(text)
+        self._text = text.strip()
+        self._tags = tags + parse_tags
 
     def __iter__(self):
         for k, v in self.__dict__.items():
