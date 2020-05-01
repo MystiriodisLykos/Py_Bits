@@ -1,9 +1,30 @@
 import functools
 import typing
 
+class Cache:
+    @staticmethod
+    def class_init(cls):
+        class Cached(cls):
+            @Cache.function
+            def __new__(cls, *args, **kwargs):
+                return super().__new__(cls, *args, **kwargs)
+        return Cached
+
+    @staticmethod
+    def function(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            key = tuple(args) + tuple(kwargs)
+            if key in wrapper.cache:
+                return wrapper.cache[key]
+            res = func(*args, **kwargs)
+            wrapper.cache[key] = res
+            return res
+        wrapper.cache = {}
+        return wrapper
+
 def append_unique(iter_, val):
     return iter_ if val in iter_ else iter_ + iter_.__class__([val])
-
 
 def _make_record(nm_tpl, bases = ()):
     nm_tpl_bases = nm_tpl.__bases__
@@ -17,7 +38,7 @@ def _make_record(nm_tpl, bases = ()):
                                 func(getattr(record, field)))
             return lens
         setattr(nm_tpl, f'{field}_lens', inner(field))
-    return nm_tpl
+    return Cache.class_init(nm_tpl)
 
 
 class RecordMeta(typing.NamedTupleMeta):
@@ -32,12 +53,15 @@ class Record(typing.NamedTuple, metaclass = RecordMeta):
         nm_tpl = super().__new__(cls, *args, **kwargs)
         return _make_record(nm_tpl, bases)
 
+    @Cache.function
     def view(self, lens):
         return lens(lambda v: v, lambda f, v: v, self)
 
+    @Cache.function
     def over(self, lens, f):
         return lens(f, lambda f, v: f(v), self)
 
+    @Cache.function
     def set(self, lens, v):
         return self.over(lens, lambda _: v)
 
@@ -59,6 +83,16 @@ def tests():
         assert t2.y == t1.y*2,  'Over sets correct value'
         assert t2.x is v1,  'Over leaves references to non-set values'
 
+    def cache_tests(record):
+        v1, v2, v3, v4 = 101010, 202020, 303030, 404040
+        t1 = record(v1, v2, v3)
+        t2 = record(v1, v2, v3)
+        assert t1 is t2,  'Creation is cached'
+        times_two = lambda v: v*2
+        t3 = t1.over(record.y_lens, times_two)
+        t4 = t1.over(record.y_lens, times_two)
+        assert t3 is t4,  'Over is cached'
+
     def mixin_tests(record):
           assert isinstance(record(1), Mixin),  'Supports Mixin classing'
           assert hasattr(record(1), 'mixin_method'),  'Mixin methods are carried'
@@ -71,10 +105,12 @@ def tests():
         z: int
 
     lens_tests(TestClass)
+    cache_tests(TestClass)
 
     TestFunc = Record('TestFunc', (('x', int), ('y', int), ('z', int)))
 
     lens_tests(TestFunc)
+    cache_tests(TestFunc)
 
     class Mixin():
         def mixin_method(self, v):
