@@ -65,13 +65,13 @@ class Utils:
     def load_tags(tags_file):
         if os.path.exists(tags_file):
             with open(tags_file) as file:
-                return (json.load(file))
+                return json.load(file)
         return ()
 
     @staticmethod
     def write_tags(tags_file, tags):
         with open(tags_file, 'w') as file:
-            file.write(json.dumps(list(tags), default=str)+'\n')
+            file.write(json.dumps(tags, default=str)+'\n')
 
     @staticmethod
     def remove_file(file_name):
@@ -90,7 +90,7 @@ class Entry:
         self._id = id if id else uuid.uuid1().hex
         text, parse_tags = Utils.parse_tags(text)
         self._text = text.strip()
-        self._tags = tags + parse_tags
+        self._tags = tuple(tags) + tuple(parse_tags)
 
     def __iter__(self):
         for k, v in self.__dict__.items():
@@ -111,8 +111,12 @@ class Tracker:
 
     def _new(self, text):
         entry = Entry(text, datetime.datetime.now())
-        tags = set(Utils.load_tags(self._tags_file))
-        tags = tags.union(entry._tags)
+        tags = Utils.load_tags(self._tags_file)
+        for tag in entry._tags:
+            if tag in tags:
+                tags[tag] += [entry._id]
+            else:
+                tags[tag] = [[entry._id]]
         Utils.write_tags(self._tags_file, tags)
         Utils.write_entry_to_file(self._current_file, entry)
 
@@ -128,6 +132,6 @@ class Tracker:
         Utils.write_entry_to_file(self._entries_file, entry, 'a')
 
     def start(self, text):
-        if self.current != {}:
+        if self.current:
             self.stop(self.current)
         self._new(text)
