@@ -116,6 +116,10 @@ class Tracker:
         Utils.write_tags(self._tags_file, tags)
         Utils.write_entry_to_file(self._current_file, entry)
 
+    def done(self, text):
+        self.start(text)
+        self.stop()
+
     def stop(self, entry = None):
         if not entry:
             entry = self.current
