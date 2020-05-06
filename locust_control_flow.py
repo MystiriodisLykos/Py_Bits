@@ -13,7 +13,7 @@ def bind(binder):
     return wrapper
   return decorator
 
-if_ = lambda bool_, next_: bind(lambda self: next_ if bool_(self) else None)
+if_ = lambda bool_, next_, else_ = None: bind(lambda self: next_ if bool_(self) else else_)
 
 class Test(locust.SequentialTaskSet):
 
@@ -33,17 +33,29 @@ class Test(locust.SequentialTaskSet):
   def _r(self):
     print(f'recursion {self.n}')
     self.n -= 1
-  
+
   @locust.task
   @if_(lambda self: self.i != 0, _1)
   def _if(self):
     self.i = random.randint(0,1)
     print(f'if {self.i} == 1 then normal 1')
-  
+
+  def if_positive(self):
+    print('if was true')
+
+  def if_negative(self):
+    print('if was false')
+
+  @locust.task
+  @if_(lambda self: self.i != 0, if_positive, if_negative)
+  def _if2(self):
+    self.i = random.randint(0,1)
+    print(f'if {self.i} == 1')
+
   @locust.task
   def _2(self):
     print('normal 2')
-  
+
   @locust.task
   def stop(self):
     print('stop')
@@ -56,9 +68,6 @@ class User(locust.User):
 # setup Environment and Runner
 env = locust.env.Environment(user_classes=[User])
 env.create_local_runner()
-
-# start a greenlet that periodically outputs the current stats
-# gevent.spawn(stats_printer(env.stats))
 
 # start the test
 env.runner.start(1, hatch_rate=10)
