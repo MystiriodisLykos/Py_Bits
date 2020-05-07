@@ -16,6 +16,18 @@ def chain(chainer):
 
 conditional_next = lambda bool_, next_, else_ = None: chain(lambda self: next_ if bool_(self) else else_)
 
+def if_(bool_):
+  def decorator(func):
+    res = chain(lambda self: func if bool_(self) else res._else)(lambda _: None)
+    def else_(_else):
+      res._else = _else
+      return _else
+    res.else_ = else_
+    res._else = None
+    return res
+
+  return decorator
+
 class Test(locust.SequentialTaskSet):
 
   def __init__(self, *args, **kwargs):
@@ -24,6 +36,15 @@ class Test(locust.SequentialTaskSet):
       self.og_tasks = self.tasks
     self.tasks = list(self.og_tasks)
     self.n = 3
+
+  @locust.task
+  @if_(lambda self: random.randint(0,1) == 0)
+  def _i(self):
+    print('if was true')
+
+  @_i.else_
+  def _e(self):
+    print('if was false')
 
   @locust.task
   def _1(self):
@@ -39,7 +60,7 @@ class Test(locust.SequentialTaskSet):
   @conditional_next(lambda self: self.i != 0, _1)
   def _if(self):
     self.i = random.randint(0,1)
-    print(f'if {self.i} == 1 then normal 1')
+    print(f'conditional next if {self.i} == 1 then normal 1')
 
   def conditional_nextpositive(self):
     print('if was true')
@@ -51,7 +72,7 @@ class Test(locust.SequentialTaskSet):
   @conditional_next(lambda self: self.i != 0, conditional_nextpositive, conditional_nextnegative)
   def _if2(self):
     self.i = random.randint(0,1)
-    print(f'if {self.i} == 1')
+    print(f'conditional next if {self.i} == 1')
 
   @locust.task
   def _2(self):
