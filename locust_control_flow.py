@@ -3,17 +3,18 @@ import locust.env
 import gevent
 import random
 
-def bind(binder):
+# chain :: (a -> f a) -> f a -> f a
+def chain(chainer):
   def decorator(func):
     def wrapper(self):
       func(self)
-      next_ = binder(self)
+      next_ = chainer(self)
       if next_:
         self.tasks.insert(self._task_index, next_)
     return wrapper
   return decorator
 
-if_ = lambda bool_, next_, else_ = None: bind(lambda self: next_ if bool_(self) else else_)
+conditional_next = lambda bool_, next_, else_ = None: chain(lambda self: next_ if bool_(self) else else_)
 
 class Test(locust.SequentialTaskSet):
 
@@ -29,25 +30,25 @@ class Test(locust.SequentialTaskSet):
     print('normal 1')
 
   @locust.task
-  @bind(lambda self: Test._r if self.n != 0 else None)
+  @chain(lambda self: Test._r if self.n != 0 else None)
   def _r(self):
     print(f'recursion {self.n}')
     self.n -= 1
 
   @locust.task
-  @if_(lambda self: self.i != 0, _1)
+  @conditional_next(lambda self: self.i != 0, _1)
   def _if(self):
     self.i = random.randint(0,1)
     print(f'if {self.i} == 1 then normal 1')
 
-  def if_positive(self):
+  def conditional_nextpositive(self):
     print('if was true')
 
-  def if_negative(self):
+  def conditional_nextnegative(self):
     print('if was false')
 
   @locust.task
-  @if_(lambda self: self.i != 0, if_positive, if_negative)
+  @conditional_next(lambda self: self.i != 0, conditional_nextpositive, conditional_nextnegative)
   def _if2(self):
     self.i = random.randint(0,1)
     print(f'if {self.i} == 1')
