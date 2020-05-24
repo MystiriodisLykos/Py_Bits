@@ -100,13 +100,15 @@ class Product(typing.NamedTuple, metaclass = ProductMeta):
 class SumMeta(type):
   def __new__(mcs, typename, bases, namespace):
     values = {}
-    if '__annotations__' in namespace:
-      annotations = namespace.pop('__annotations__')
-      for annotation, type_ in annotations.items():
-        if issubclass(type_, Product) or issubclass(type_, Sum):
-          values[annotation] = type_
-        else:
-          values[annotation] = Product(annotation, [(annotation.lower(), type_)], namespace = namespace)
+    annotations = namespace.pop('__annotations__', {})
+    sum_cls = super().__new__(mcs, typename, bases, namespace)
+    for annotation, type_ in annotations.items():
+      if issubclass(type_, Product) or issubclass(type_, Sum):
+        class SubType(type_, sum_cls):
+          pass
+        values[annotation] = SubType
+      else:
+        values[annotation] = Product(annotation, [(annotation.lower(), type_)], bases = (sum_cls,))
 
     namespace.update(values)
     return super().__new__(mcs, typename, bases, namespace)
@@ -192,6 +194,6 @@ def sum_tests():
   class S2(Sum):
     P: P1
     S: S1
-
-  assert S2.P is P1,  'Can have products'
-  assert S2.S is S1,  'Can have sums'
+  
+  assert issubclass(S2.P, P1),  'Can have products'
+  assert issubclass(S2.S, S1),  'Can have sums'
