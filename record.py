@@ -60,12 +60,19 @@ def _make_product(nm_tpl, bases = ()):
     nm_tpl.__bases__ = nm_tpl_bases
     for field in nm_tpl._fields:
         def inner(field):
+            @staticmethod
             def lens(func, mapper, product):
                 return mapper(lambda v: product._replace(**{field: v}),
                                 func(getattr(product, field)))
             return lens
         setattr(nm_tpl, f'{field}_lens', inner(field))
     return Cache.class_new(nm_tpl)
+
+
+def _either_string_lens_to_lens(either, instance):
+  if type(either) == str:
+    return getattr(instance, f'{either}_lens')
+  return either
 
 
 class ProductMeta(typing.NamedTupleMeta):
@@ -86,14 +93,17 @@ class Product(typing.NamedTuple, metaclass = ProductMeta):
 
     @Cache.function
     def view(self, lens):
+        lens = _either_string_lens_to_lens(lens, self)
         return lens(lambda v: v, lambda f, v: v, self)
 
     @Cache.function
     def over(self, lens, f):
+        lens = _either_string_lens_to_lens(lens, self)
         return lens(f, lambda f, v: f(v), self)
 
     @Cache.function
     def set(self, lens, v):
+        lens = _either_string_lens_to_lens(lens, self)
         return self.over(lens, lambda _: v)
 
 
@@ -124,6 +134,8 @@ def product_tests():
         assert t1[0] is v1,  'Regular named tuple sub index returns correct value'
 
         assert t1.view(product.y_lens) is v2,  'View with built lens returns correct value'
+        assert t1.view(t1.y_lens) is v2,  'Lenses can be referenced by instance'
+        assert t1.view('y') is v2,  'Lenses can be referenced by name'
 
         t2 = t1.set(product.y_lens, v4)
         assert t2.y is v4,  'Set produces correct value'
